@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC 
+	"-//mybatis.org//DTD Config 3.0//EN" 
+	"HTTP://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- myBatis 운영 환경 설정 -->
+	<settings>	
+		<setting name="cacheEnabled" 			value="false" />
+		<setting name="useGeneratedKeys" 		value="true" />
+		<setting name="defaultExecutorType" 	value="REUSE" />
+	</settings>
+	<!-- myBatis에서 사용할 클래스의 별칭을 부여한다. -->
+	<typeAliases>
+
+		<typeAlias alias="int"			type="java.lang.Integer" />
+		<typeAlias alias="String"		type="java.lang.String" />
+		<typeAlias alias="HMap"			type="java.util.Map"/>
+		<typeAlias alias="AppVO"		type="com.storm.VO.AppVO"/>
+		<typeAlias alias="TagVO"		type="com.storm.VO.TagVO"/>
+		<typeAlias alias="GenreVO"		type="com.storm.VO.GenreVO"/>
+		<typeAlias alias="CompanyVO"	type="com.storm.VO.CompanyVO"/>
+		<typeAlias alias="LanguageVO"	type="com.storm.VO.LanguageVO"/>
+		<typeAlias alias="CategoryVO"	type="com.storm.VO.CategoryVO"/>
+		<typeAlias alias="ReviewVO"		type="com.storm.VO.ReviewVO"/>
+		<typeAlias alias="mVO"			type="com.storm.VO.MemberVO"/>
+		<typeAlias alias="CVO"			type="com.storm.VO.CommuVO" />
+		<typeAlias alias="mbVO"			type="com.storm.VO.MemberVO" />
+		<typeAlias alias="umVO" 		type="com.storm.VO.UserManagerVO" />
+		<typeAlias alias="bmVO" 		type="com.storm.VO.BoardManagerVO" />
+		<typeAlias alias="keywordVO" 		type="com.storm.VO.KeyWordVO" />		
+
+	</typeAliases>
+	<!--  SQL 파일을 등록할 xml파일을 지정한다. -->
+	<mappers>
+		<mapper resource="/com/storm/SQL/AppListSQL.xml" />
+		<mapper resource="/com/storm/SQL/LoginSQL.xml" />
+		<mapper resource="/com/storm/SQL/MypageSQL.xml" />
+		<mapper resource="/com/storm/SQL/CommuSQL.xml" />
+		<mapper resource="/com/storm/SQL/ChartSQL.xml" />
+		<mapper resource="/com/storm/SQL/MemberSQL.xml" />
+		<mapper resource="/com/storm/SQL/UserManagerSQL.xml" />
+		<mapper resource="/com/storm/SQL/BoardManagerSQL.xml" />
+	</mappers>
+</configuration>

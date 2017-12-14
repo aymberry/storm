@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC 
+	"-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	
+<mapper namespace="AppList">
+	<sql id="appSelectField">
+	    app_id						as		id,
+	    app_title					as		title,
+	    app_text   				as		text,
+	    app_releasedate	as		releaseDate,
+	    APP_price   			as		price,
+	    app_imageurl			as		imgURL
+	</sql>
+	
+	<sql	id="tagSelectField">
+			tag_name	as		name,
+			tag_id			as		id
+	</sql>
+	
+	<sql	id="categorySelectField">
+		category_id 			as  id,
+        category_name  	as  name
+	</sql>
+	
+	
+	<select id="getTotal"	resultType="int">
+		SELECT	COUNT(*)
+			FROM	App_Table			
+	</select>
+	
+	<select	id="appList"	parameterType="hMap"	resultType="AppVO">
+		SELECT		t.*
+		FROM			(SELECT	rownum as r_no,
+                							app_id						as		id,
+                							app_title					as		title,
+                							app_text   				as		text,
+                							app_releasedate	as		releaseDate,
+                							APP_price   			as		price,
+                							app_imageurl			as		imgURL
+    						FROM    app_table
+    						ORDER BY	app_id ) t
+		WHERE		r_no between #{start} AND #{end}
+		ORDER by r_no
+	</select>
+	
+	<select	id="tagList"	resultType="TagVO">
+		select	tag_id		as id,
+				tag_name 	as name
+		FROM	tag_table
+	</select>
+	
+	<select	id="appTagList"	parameterType="int"	resultType="TagVO">
+		SELECT		tag.tag_id			as		id,
+							tag.tag_name		as		name
+        	FROM 	(SELECT	*
+                		 FROM	map_app_tag
+	                	 WHERE	app_id = #{app_id}
+        	        	) map,
+            			tag_table   tag
+        	WHERE
+            		map.tag_id = tag.tag_id
+	</select>
+	
+	<select	id="appCategoryList"	parameterType="int"	resultType="CategoryVO">
+		SELECT	cate.category_id 			as  id,
+        				cate.category_name  	as  name
+ 		FROM (	SELECT	*
+                		FROM	map_app_category
+                		WHERE   app_id = #{app_id})	map,
+                		
+        			category_table  cate
+		WHERE
+    			map.category_id =   cate.category_id
+	</select>
+	
+	<select	id="appLanguageList"	parameterType="int"	resultType="LanguageVO">
+		SELECT 	lang.language_id			as		id,
+						lang.language_name		as 	name,
+        				map.lang_interface		as 	supported_interface,
+        				map.lang_voice				as 	supported_voice,
+        				map.lang_subtitle			as 	supported_subtitle
+        	FROM	(	SELECT  * 
+        					FROM    map_app_lang
+        					WHERE   app_id = #{app_id}
+        				) map,
+    					Language_table  lang
+		WHERE	map.language_id =   lang.language_id
+	</select>
+	
+	<select	id="appDeveloperList"	parameterType="int"	resultType="CompanyVO">
+		SELECT	comp.company_id     as	id,
+        			comp.company_name   as	name
+		FROM	(  	SELECT  * 
+        				FROM    map_app_developer
+        				WHERE   app_id = #{app_id}) map,
+    				Company_Table   comp
+		WHERE
+    				map.developer_id =   comp.company_id
+	</select>
+	
+	<select	id="appPublisherList"	parameterType="int"	resultType="CompanyVO">
+		SELECT 	comp.company_id		as  id,
+        			comp.company_name	as  name
+		FROM	(	SELECT  * 
+        				FROM    map_app_publisher
+        				WHERE   app_id = #{app_id}) map,
+    				Company_Table   comp
+		WHERE
+    			map.publisher_id =   comp.company_id
+	</select>
+	
+	<select	id="appGenreList"	parameterType="int"	resultType="GenreVO">
+		SELECT	gen.genre_id			as  id,
+        				gen.genre_name	as  name
+		FROM(   SELECT  * 
+        			FROM    map_app_genre
+        			WHERE   app_id = #{app_id}) map,
+    				Genre_table   gen
+		WHERE	map.genre_id =   gen.genre_id
+	</select>
+	
+	<select	id="appReviewList"	parameterType="hMap"	resultType="ReviewVO">
+		SELECT	review_writer						as		writer,
+						review_recommended		as		isRecommended,
+						review_userplaytime			as		userPlayTime,
+						review_wdate						as		wdate,
+						review_text							as		text,
+						review_app_id					as		app_id
+		FROM		Review_table
+		WHERE			review_app_id=#{app_id}
+				AND		review_recommended=#{isRecommend}				
+	</select>
+	
+	<select	id="appInfo"	parameterType="int"	resultType="AppVO">
+		SELECT
+			<include refid="appSelectField"/>
+		FROM
+			app_table
+		WHERE
+			app_id	=#{app_id}
+	</select>
+	
+	<select	id="genreList"	resultType="GenreVO">
+		SELECT	genre_id			as		id,
+						genre_name	as		name
+			FROM	genre_table
+	</select>
+	<select	id="categoryList"	resultType="CategoryVO">
+		SELECT	category_id			as		id,
+				category_name		as		name
+		FROM	category_table
+	</select>
+	<select	id="languageList"	resultType="LanguageVO">
+		SELECT	language_id			as		id,
+				language_name		as		name
+		FROM	Language_table
+	</select>
+	
+	<select	id="searchSelectedAppOption"	parameterType="hMap" resultType="AppVO">
+		SELECT	app_id 					as id,
+        		app_title 			  		as  title,
+        		app_text    				as  text,
+        		app_releasedate			as releaseDate,
+        		app_price		   		as  price,
+        		app_imageurl 	 	as imgurl
+		FROM	app_table
+		<trim	prefix="WHERE"	prefixOverrides="AND|OR">
+			<if test="TAGLIST !=null">
+				AND app_id IN
+				<foreach collection="TAGLIST" item="tag"
+					 open="(	"
+					 close=" ) "
+					 separator=" INTERSECT ">
+				SELECT	app_id
+				FROM	searchOptionView
+				WHERE	tag_id=#{tag}
+			</foreach>
+			</if>			
+			
+			
+			<if test="GENRELIST != null">
+				AND app_id IN
+				<foreach collection="GENRELIST" item="genre"
+					 open="(	"	 close=" ) "
+					 separator=" INTERSECT ">
+				SELECT	app_id
+				FROM	searchOptionView
+				WHERE	genre_id=#{genre}
+			</foreach>
+			</if>
+			
+			
+			<if test="CATEGORYLIST != null">
+				AND app_id IN
+					<foreach collection="CATEGORYLIST" item="category"
+					 open="(	"	 close=" ) "
+					 separator=" INTERSECT ">
+				SELECT	app_id
+				FROM	searchOptionView
+				WHERE	category_id=#{category}
+			</foreach>
+			</if>
+		
+		</trim>
+	</select> 
+		
+	<select	id="ajaxTagSearch"	resultType="TagVO">
+		SELECT	tag_id			as		id,
+						tag_name	as		name
+		FROM		tag_table
+		WHERE	UPPER(tag_name) LIKE  UPPER( '%'||#{temp}||'%' )
+	</select>
+	
+	<select id="getPositiveKeyword"	parameterType="int"  resultType="keywordVO">
+		SELECT 	r.app_id					as		app_id,
+						r.keyword_name	as		keyword,
+						r.keyword_count	as		count
+		FROM		(	SELECT 	rownum r_no,
+											tmp.* 
+    						FROM (	SELECT	*
+    										FROM		positive_Keywords_table 
+    										WHERE	app_id =#{app_id} 
+    										ORDER BY keyword_count desc
+    									)	tmp
+  		  				) r
+		WHERE	r_no between 0 and	(	SELECT 	COUNT(*)	*	0.05
+																FROM		positive_keywords_table
+																WHERE	app_id = #{app_id})
+	</select>
+	
+	<select id="getNegativeKeyword"	parameterType="int" resultType="keywordVO">
+		SELECT 	r.app_id					as		app_id,
+						r.keyword_name	as		keyword,
+						r.keyword_count	as		count
+		FROM(	SELECT 	rownum r_no,
+										tmp.* 
+    					FROM (	SELECT	*
+    									FROM		negative_keywords_table
+    									WHERE	app_id =#{app_id} 
+    									ORDER BY keyword_count desc
+    								)	tmp
+  		  			) r
+  		WHERE	r_no between 0 and	(	SELECT 	COUNT(*)	*	0.05
+																FROM		negative_keywords_table
+																WHERE	app_id = #{app_id})
+	</select>
+	
+	<select	id="getHotGame"	resultType="int">
+		SELECT tb.app_id	as		app_id
+		FROM
+    		((	Select rownum as r_no  , t.*
+    			FROM
+    			(	SELECT	count(*) as cnt, 
+    								a.app_id  
+    				FROM		app_table a,
+    							review_table r 
+    				WHERE 		a.app_id = r.app_id
+    				GROUP BY 	a.app_id)t) tb
+    		)
+		WHERE tb.r_no=1
+	</select>
+	
+	<select	id="getRecentGame"	resultType="int">
+		SELECT  tb.id as app_id
+		FROM
+    	(	SELECT 	rownum 							as r_no,
+        					app.app_id  			as id,
+        					app.app_title   		as title,
+        					app.app_text    		as  text,
+        					app.app_releasedate		as releasedate,
+        					app.app_price   		as  price,
+        					app.app_imageurl		as imgURL
+			FROM		(	SELECT		*
+								FROM			app_table
+								WHERE		app_releaseDate <![CDATA[ < ]]> SYSDATE 
+								ORDER BY	app_releaseDate desc
+							) app
+    	)	tb
+		WHERE tb.r_no = 1 	
+	</select>
+	
+	<select	id="getCommingSoon"	resultType="int">
+		SELECT  tb.id as app_id
+		FROM
+    			(	SELECT  rownum 							as r_no,
+        							app.app_id  					as id,
+        							app.app_title   				as title,
+        							app.app_text    				as  text,
+        							app.app_releasedate		as releasedate,
+        							app.app_price   				as  price,
+        							app.app_imageurl			as imgURL
+    				FROM		(	SELECT	*
+    				 					FROM		app_table where app_releaseDate
+    				 									<![CDATA[ > ]]>
+    				 									 SYSDATE 
+    				 					ORDER BY	app_releaseDate desc
+    				 				) 	app
+    			)	tb
+		WHERE tb.r_no = 1 		
+	</select>
+	
+	<select	id="getApp"	parameterType="int"	resultType="AppVO">
+		SELECT	app_id 					as id,
+        				app_title 			  		as  title,
+        				app_text    				as  text,
+        				app_releasedate	as releaseDate,
+        				app_price		   		as  price,
+        				app_imageurl 	 	as imgurl
+		FROM    APP_TABLE
+		WHERE   app_id = #{app_id}
+	</select>
+	
+	<select	id="getAppImg" parameterType="int"	resultType="String">
+		select app_imageUrl from app_table  where  app_id= #{app_id}
+	</select>
+</mapper>

@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 	xml  파일이 되기 위해서는 
+		1.	Header 가 존재해야 하고
+		2.	root 태그가 존재해야 한다.
+		
+		참고로	xml 파일에 특정 태그만 기록하기 위해서는
+		DTD, 스키마 선언이 되어야 한다.
+-->
+<!DOCTYPE mapper PUBLIC 
+	"-//mybatis.org//DTD Mapper 3.0//EN" 
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="commu">
+	<sql id="selectCommu">
+		APP_ID	AS communo,
+		APP_TITLE AS communame,
+		APP_TEXT AS commutext,
+		APP_RELEASEDATE AS commudate,
+		APP_PRICE AS commuprice,
+		APP_IMAGEURL AS commuimgName
+	</sql>
+	<sql id="selectBoard">
+		BOARD_APP_ID AS communo,
+		BOARD_USER_KEY AS boarduserKey,
+		BOARD_NO AS boardno,
+		BOARD_TITLE AS boardname,
+		BOARD_TEXT AS boardtext,
+		BOARD_WDATE AS bdate
+	</sql>
+	<sql id="CommentTable">
+		comment_oriNo AS oriNo
+		comment_no AS replyNo
+		comment_writeKey AS usrKey
+		comment_wdate AS rwdate
+		comment_text AS reply
+	</sql>
+	
+
+
+	
+<!-- 	목록 꺼내기 질의 명령 -->
+	<select id="commuList"	parameterType="HMap" resultType="CVO">
+
+			
+      	select <include refid="selectCommu" /> 
+      	from(
+            	SELECT a.*, ROWNUM as rno 
+            	from
+					(
+						SELECT
+							*
+						FROM
+							app_table 
+						ORDER BY
+							app_id) a )
+		where rno between  #{start} and #{end}
+	</select>
+		
+	
+<!-- 	페이지 정보를 구하기 위한 총 데이터 개수 구하기 질의 -->
+	<select id="getCommuTotal"	resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			app_table
+	</select>
+	
+	
+<!-- 	상세보기 질의 명령 -->
+	<select id="commuView"	parameterType="int"	resultType="CVO">
+		SELECT
+			<include refid="selectCommu" />
+		FROM
+			app_table
+		WHERE
+			app_id = #{communo}
+	</select>
+	
+<!--	팔로우 등록을 위한 질의 명령  -->
+	<insert id="Finsert" parameterType="CVO">
+		INSERT
+		INTO
+			MAP_USER_COMMUNITY
+		VALUES
+			(#{usrKey},#{communo},'Y')
+	</insert>
+<!--	팔로우 재등록을 위한 질의 명령  -->
+	<update id="Fupdate" parameterType="CVO">
+		UPDATE
+			MAP_USER_COMMUNITY
+		SET
+			ISSHOW='Y'
+		WHERE
+			USER_KEY=#{usrKey}
+			AND COMMUNITY_ID=#{communo}
+	</update>
+	
+<!--	팔로우 취소를 위한 질의 명령  -->
+	<update id="UFupdate" parameterType="CVO">
+		UPDATE
+			MAP_USER_COMMUNITY
+		SET
+			ISSHOW='N'
+		WHERE
+			USER_KEY=#{usrKey}
+			AND COMMUNITY_ID=#{communo}
+			
+	</update>
+	
+<!--	팔로우 확인을 위한 질의 명령  -->
+	<select id="selectShow" parameterType="CVO"	resultType="String">
+		SELECT
+			ISSHOW
+		FROM
+			MAP_USER_COMMUNITY
+		WHERE
+			USER_KEY=#{usrKey}
+			AND COMMUNITY_ID=#{communo}
+	</select>
+
+<!--	검색 질의 명령  -->
+	<select id="search" resultType="CVO" parameterType="HMap">
+		SELECT
+			<include refid="selectCommu"/>
+		FROM 
+			AnBoard
+		WHERE
+			ab_Step=0
+			AND ab_Group IN(
+			SELECT
+				ab_Group
+			FROM
+				AnBoard
+			WHERE
+			<!--	조건은 4가지 경우에 따라서 달라지며
+					어디서 검색할지는 kind라는 변수에
+					기억되어 있다.  -->
+			<!--	제목 검색  -->
+			<if test="kind eq 'title'">
+				ab_Title LIKE '%'||#{word}||'%'
+			</if>
+			<!--	본문 검색  -->
+			<if test="kind eq 'body'">
+				ab_Body LIKE '%'||#{word}||'%'
+			</if>
+			<!--	글쓴이 검색  -->
+			<if test="kind eq 'writer'">
+				ab_Writer LIKE '%'||#{word}||'%'
+			</if>
+			<!--	태그 검색  -->
+			<if test="kind eq 'tags'">
+				ab_Tag LIKE '%#'||#{word}||'#%'
+			</if>
+			)	
+	</select>
+	
+<!-- 	게시물 수정을 위한 질의 명령 
+	
+		이 경우는 수정될 수도 있고, 수정이 되지 않을 수도 있다.
+			
+		JDBC에서는 update, delete 질의 명령을 실행하면 변화된 
+		데이터의 개수를 알려줄 수 있다.
+			
+		우리로 말하면
+		수정되면		결과가 	1
+		수정되지 않으면	결과가 	0
+			
+		이것을 이용해서 수정 결과를 알 수 있다.
+-->
+	<update id="updateBoard"	parameterType="CVO">
+		UPDATE
+			BOARD_TABLE
+		SET
+			ab_Title = #{title},
+			ab_Body = #{body},
+			ab_Tag = #{tags}
+		WHERE
+			ab_No = #{oriNo}			
+			AND	ab_Password = #{password}
+	</update>
+	
+<!-- 	삭제를 위한 질의 명령 -->	
+	<update id="delete" parameterType="CVO">
+		UPDATE
+			AnBoard
+		SET
+			ab_IsShow='N'
+		WHERE
+			ab_No=#{oriNo}
+			AND ab_Password=#{password}
+	</update>
+	
+<!--	게시물 등록을 위한 질의 명령  -->
+	<insert id="BInsert" parameterType="CVO">
+		<selectKey keyProperty="boardno" resultType="int" order="BEFORE">
+			SELECT
+				NVL(MAX(BOARD_NO), 0) + 1
+			FROM
+				BOARD_TABLE
+		</selectKey>
+		INSERT
+		INTO
+			BOARD_TABLE
+		VALUES
+			(#{communo},#{usrKey},#{boardno},#{boardname},SYSDATE,#{boardtext},'Y',1)
+	</insert>
+	
+	
+<!-- 게시글 목록보기를 위한 질의명령  -->
+	<select id="BList" parameterType="HMap" resultType="CVO">
+		SELECT
+			<include refid="selectBoard" />
+		FROM
+			BOARD_TABLE
+		WHERE
+			BOARD_APP_ID=#{communo}
+		order by board_no desc
+	</select>
+		
+	<select id="getBoardTotal"	resultType="int">
+		SELECT
+			COUNT(*)
+		FROM
+			BOARD_TABLE
+	</select>
+<!-- 게시글 상세보기 -->
+ 	<select id="boardView"	parameterType="int"	resultType="CVO">
+		SELECT
+			<include refid="selectBoard" />
+		FROM
+			board_table
+		WHERE
+			board_no = #{boardNo}
+	</select>
+ 
+<!-- 회원정보 불러오기 -->
+	<select id="getMember" parameterType="String" resultType="mVO" >
+		SELECT 
+			user_email AS id, user_key AS no
+		FROM 
+			user_table
+		WHERE 
+			user_email = #{id}
+	</select>
+
+
+<!-- 유저키 뽑기 -->
+	<select id="getUserkey" parameterType="String" resultType="int" >
+		SELECT 
+			user_key AS usrKey
+		FROM 
+			user_table
+		WHERE 
+			user_email = #{id}
+	</select>
+	
+	
+<!-- 코멘트테이블 데이터 뽑기 -->	
+	<select id="getCommentT" parameterType="String" resultType="int" >
+		SELECT 
+			<include refid="CommentTable" />
+		FROM 
+			comment_table
+		WHERE 
+			comment_oriNo = #{oriNo}
+	</select>
+	
+	
+	<insert id="insertReply" parameterType="int">
+		INSERT
+		INTO
+			comment_table
+		VALUES
+			(#{oriNo}, #{replyNo}, #{usrKey}, SYSDATE, #{reply}, 'Y')
+	</insert>
+
+</mapper>
+
+
+
+
+
